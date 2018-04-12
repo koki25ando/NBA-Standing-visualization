@@ -1,0 +1,115 @@
+---
+title: "Standings"
+author: "Koki Ando"
+date: "4/12/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+[Kaggle](https://www.kaggle.com/pablote/nba-enhanced-stats/data)
+
+## R Markdown
+```{r}
+setwd("/Users/KokiAndo/desktop/R/R report/Standings")
+library(data.table)
+library(tidyverse)
+library(SportsAnalytics)
+library(rvest)
+library(magrittr)
+library(plotly)
+library(gganimate)
+library(scales)
+stand <- fread("2017-18_standings.csv", data.table = FALSE)
+```
+
+```{r}
+stand %>% str()
+```
+```{r}
+stand %>% tail()
+```
+
+```{r}
+stand$stDate <- as.Date(stand$stDate)
+```
+
+# Team info ectract
+
+# Scrape NBA Team list
+```{r}
+page <- read_html("https://www.basketball-reference.com/")
+tables <- page %>% html_table(header = FALSE)
+table.east <- tables %>% extract2(1)
+table.west <- tables %>% extract2(2)
+
+names(table.east)[1] <- "Team"
+table.east <- table.east[-1,]
+table.east <- table.east %>% mutate(Conf = "East") %>% select(Team, Conf)
+table.east$Team <- str_sub(table.east$Team,1, 3)
+
+names(table.west)[1] <- "Team"
+table.west <- table.west[-1,]
+table.west <- table.west %>% mutate(Conf = "West") %>% select(Team, Conf)
+table.west$Team <- str_sub(table.west$Team,1, 3)
+
+table.team <- bind_rows(table.east, table.west)
+```
+
+```{r}
+table.team$Team[17] <- "GS"
+table.team$Team[21] <- "NO"
+table.team$Team[11] <- "NY"
+table.team$Team[23] <- "SA"
+```
+
+```{r}
+table.team
+```
+
+```{r}
+table.team %>% str()
+```
+```{r}
+stand %>% str()
+```
+
+
+```{r}
+table.rank <- merge(stand, table.team, by.x = "teamAbbr", by.y = "Team")
+table.rank %>% head()
+```
+
+```{r}
+table.rank %>%
+  filter(stDate >= "2018-03-19") %>% 
+  ggplot(aes(x = stDate, y = rank, colour = teamAbbr)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_y_reverse() + 
+  geom_hline(yintercept = 8.5, color = "red", 
+             linetype="dashed", size = 1.5) + 
+  facet_grid(Conf~.)
+```
+
+```{r}
+table.rank %>%
+  filter(stDate >= "2018-03-19" & Conf == "West") %>% 
+  ggplot(aes(x = stDate, y = rank, colour = teamAbbr)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_y_reverse() + 
+  geom_hline(yintercept = 8.5, color = "red", 
+             linetype="dashed", size = 1.5) +
+  labs(title = "West Power Ranking from Mar 19th")
+```
+
+
+
+
+
+
+
+
